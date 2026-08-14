@@ -1,0 +1,6 @@
+{
+  "name": "LLM Controller",
+  "description": "Secure remote LLM controller dashboard for developers",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
