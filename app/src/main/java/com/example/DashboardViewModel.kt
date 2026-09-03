@@ -195,39 +195,44 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val logs = requestHistory.value
         if (logs.isEmpty()) return
 
-        val csvBuilder = StringBuilder()
-        csvBuilder.append("Timestamp,Model,Command,Response,Status\n")
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        
-        logs.forEach { log ->
-            val dateStr = dateFormat.format(Date(log.timestamp))
-            val commandEscaped = log.command.replace("\"", "\"\"")
-            val responseEscaped = log.response.replace("\"", "\"\"")
-            csvBuilder.append("$dateStr,${log.model},\"$commandEscaped\",\"$responseEscaped\",${log.status}\n")
-        }
-
-        try {
-            val logsDir = File(context.cacheDir, "logs")
-            if (!logsDir.exists()) logsDir.mkdirs()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val csvBuilder = StringBuilder()
+            csvBuilder.append("Timestamp,Model,Command,Response,Status\n")
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             
-            val file = File(logsDir, "llm_history.csv")
-            file.writeText(csvBuilder.toString())
-
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
-                putExtra(Intent.EXTRA_SUBJECT, "LLM Request History")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            logs.forEach { log ->
+                val dateStr = dateFormat.format(Date(log.timestamp))
+                val commandEscaped = log.command.replace("\"", "\"\"")
+                val responseEscaped = log.response.replace("\"", "\"\"")
+                csvBuilder.append("$dateStr,${log.model},\"$commandEscaped\",\"$responseEscaped\",${log.status}\n")
             }
-            context.startActivity(Intent.createChooser(intent, "Export Logs"))
-        } catch (e: Exception) {
-            e.printStackTrace()
+
+            try {
+                val logsDir = File(context.cacheDir, "logs")
+                if (!logsDir.exists()) logsDir.mkdirs()
+                
+                val file = File(logsDir, "llm_history.csv")
+                file.writeText(csvBuilder.toString())
+
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(Intent.EXTRA_SUBJECT, "LLM Request History")
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    context.startActivity(Intent.createChooser(intent, "Export Logs"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
