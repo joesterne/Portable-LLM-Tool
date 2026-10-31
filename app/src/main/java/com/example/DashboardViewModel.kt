@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -29,6 +30,7 @@ data class DashboardState(
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: LlmLogRepository
     private val promptRepository: PromptRepository
+    private val settingsRepository = SettingsRepository(application)
     
     init {
         val database = AppDatabase.getDatabase(application)
@@ -132,10 +134,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                val apiKey = BuildConfig.GEMINI_API_KEY
+                // The key saved in ApiSettingsScreen for the ACTIVE model wins;
+                // the build-time BuildConfig key is only a fallback. (This used
+                // to read BuildConfig alone, so keys entered in Settings had no
+                // effect at all.)
+                val activeModel = _state.value.activeModel
+                val settingsKey = settingsRepository.getApiKey(activeModel).first()
+                val apiKey = settingsKey.ifEmpty { BuildConfig.GEMINI_API_KEY }
                 if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
                     _state.value = _state.value.copy(
-                        logs = _state.value.logs + "[ERROR]: GEMINI_API_KEY not configured.",
+                        logs = _state.value.logs + "[ERROR]: No API key configured for $activeModel. Add one in API Settings.",
                         isLoading = false
                     )
                     return@launch
@@ -147,8 +155,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         thinkingConfig = ThinkingConfig(thinkingLevel = "high")
                     )
                 )
-                
-                val response = RetrofitClient.service.generateContent(apiKey, request)
+
+                val response = RetrofitClient.service.generateContent(activeModel, apiKey, request)
                 val reply = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No response."
                 
                 _state.value = _state.value.copy(
@@ -174,6 +182,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 )
                 
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Structured concurrency: cancellation is not a request failure.
+                throw e
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     logs = _state.value.logs + "[ERROR]: ${e.message}",

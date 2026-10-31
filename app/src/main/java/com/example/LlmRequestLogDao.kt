@@ -13,7 +13,4 @@ interface LlmRequestLogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: LlmRequestLog)
-
-    @Query("DELETE FROM llm_request_logs")
-    suspend fun clearLogs()
 }

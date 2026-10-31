@@ -3,12 +3,14 @@ package com.example
 import android.content.Context
 import android.util.Log
 import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import java.security.MessageDigest
 import java.util.UUID
@@ -45,9 +47,13 @@ object AuthManager {
         return try {
             val result = credentialManager.getCredential(context, request)
             val credential = result.credential
-            
-            if (credential is GoogleIdTokenCredential) {
-                val idToken = credential.idToken
+
+            // Credential Manager returns the Google ID token wrapped in a
+            // CustomCredential — never as a GoogleIdTokenCredential instance —
+            // so the old `credential is GoogleIdTokenCredential` check always
+            // fell through and sign-in could never succeed.
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
                 val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
                 val authResult = FirebaseAuth.getInstance().signInWithCredential(firebaseCredential).await()
                 authResult.user != null
@@ -55,6 +61,9 @@ object AuthManager {
                 Log.w(TAG, "Unexpected credential type")
                 false
             }
+        } catch (e: CancellationException) {
+            // Structured concurrency: cancellation is not a sign-in failure.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Google Sign-In failed", e)
             false

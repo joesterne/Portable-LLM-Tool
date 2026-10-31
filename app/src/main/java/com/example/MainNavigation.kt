@@ -16,7 +16,9 @@ fun MainNavigation() {
     val viewModel: DashboardViewModel = viewModel()
     val context = LocalContext.current
     
-    NavHost(navController = navController, startDestination = "auth") {
+    // A persisted Firebase user goes straight to the dashboard instead of
+    // being asked to sign in again on every cold start.
+    NavHost(navController = navController, startDestination = if (AuthManager.isUserSignedIn()) "dashboard" else "auth") {
         composable("auth") {
             AuthScreen(
                 onSignInClick = {
@@ -52,8 +54,9 @@ fun MainNavigation() {
             PromptManagerScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onPromptSelected = { content -> 
-                    viewModel.setInputText(content)
+                onPromptSelected = { prompt ->
+                    viewModel.setInputText(prompt.content)
+                    viewModel.setActiveModel(prompt.targetModel)
                 }
             )
         }

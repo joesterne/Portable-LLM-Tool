@@ -24,7 +24,7 @@ import com.example.ui.theme.*
 fun PromptManagerScreen(
     viewModel: DashboardViewModel,
     onNavigateBack: () -> Unit,
-    onPromptSelected: (String) -> Unit
+    onPromptSelected: (SavedPrompt) -> Unit
 ) {
     val prompts by viewModel.savedPrompts.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
@@ -69,8 +69,10 @@ fun PromptManagerScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { 
-                            onPromptSelected(prompt.content)
+                        .clickable {
+                            // Pass the whole prompt: passing only the content
+                            // silently dropped the prompt's targetModel.
+                            onPromptSelected(prompt)
                             onNavigateBack()
                         },
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),

@@ -22,13 +22,7 @@ fun ModelSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val models = listOf(
-        "gemini-3.1-pro-preview",
-        "codex-davinci",
-        "ollama-llama3",
-        "claude-code",
-        "github-copilot"
-    )
+    val models = SupportedModels.ids
 
     Box(modifier = modifier) {
         Row(

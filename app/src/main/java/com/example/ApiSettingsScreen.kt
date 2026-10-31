@@ -29,13 +29,7 @@ fun ApiSettingsScreen(
 ) {
     val apiKeys by viewModel.apiKeys.collectAsState()
 
-    val models = listOf(
-        "gemini-3.1-pro-preview" to "Gemini API Key",
-        "codex-davinci" to "Codex API Key",
-        "ollama-llama3" to "Ollama Endpoint/Key",
-        "claude-code" to "Claude API Key",
-        "github-copilot" to "GitHub Token"
-    )
+    val models = SupportedModels.all.map { it.id to it.settingsLabel }
 
     Scaffold(
         topBar = {

@@ -8,8 +8,4 @@ class LlmLogRepository(private val dao: LlmRequestLogDao) {
     suspend fun insertLog(log: LlmRequestLog) {
         dao.insertLog(log)
     }
-
-    suspend fun clearLogs() {
-        dao.clearLogs()
-    }
 }

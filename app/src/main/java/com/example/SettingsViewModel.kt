@@ -15,13 +15,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _apiKeys = MutableStateFlow<Map<String, String>>(emptyMap())
     val apiKeys: StateFlow<Map<String, String>> = _apiKeys.asStateFlow()
 
-    private val models = listOf(
-        "gemini-3.1-pro-preview",
-        "codex-davinci",
-        "ollama-llama3",
-        "claude-code",
-        "github-copilot"
-    )
+    private val models = SupportedModels.ids
 
     init {
         loadKeys()

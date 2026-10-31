@@ -5,14 +5,19 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 interface GeminiApiService {
-    @POST("v1beta/models/gemini-3.1-pro-preview:generateContent")
+    // The model is a path parameter: it used to be hardcoded to one model, so
+    // switching models in the UI changed only the label (and the history logs)
+    // while every request kept going to the same endpoint.
+    @POST("v1beta/models/{model}:generateContent")
     suspend fun generateContent(
+        @Path("model") model: String,
         @Query("key") apiKey: String,
         @Body request: GenerateContentRequest
     ): GenerateContentResponse
